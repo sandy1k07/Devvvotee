@@ -33,7 +33,7 @@ public class ChatController {
                         .build());
     }
 
-    @GetMapping("/projects/chats/{projectId}")
+    @GetMapping("/chat/projects/{projectId}")
     public ResponseEntity<List<ChatResponse>> getChats(
             @PathVariable("projectId") Long projectId) {
         return ResponseEntity.ok(chatService.getProjectChats(projectId));

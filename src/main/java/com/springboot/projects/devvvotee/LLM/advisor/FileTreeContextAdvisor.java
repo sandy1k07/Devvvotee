@@ -50,7 +50,7 @@ public class FileTreeContextAdvisor implements StreamAdvisor {  // working with 
         List<Message> allMessages = new ArrayList<>();
         if(systemMessage != null) { allMessages.add(systemMessage); } // ensuring our system msg is in beginning for caching
 
-        List<FileNode> fileTree = projectFileService.getFileTree(projectId);
+        List<FileNode> fileTree = projectFileService.getFileTree(projectId).files();
         String fileTreeContext = "\n ---- FILE TREE ---- \n" + fileTree.toString();
         allMessages.add(new SystemMessage(fileTreeContext));
         allMessages.addAll(userMessages);

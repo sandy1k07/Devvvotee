@@ -77,6 +77,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
                 }
+                if(user != null) log.info("Access token verified for userID: {}", user.userId());
                 filterChain.doFilter(request, response);
             } catch (ExpiredJwtException e) {
                 try {
@@ -90,7 +91,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
                     }
                     functions.addCookieToResponse(functions.CookieBuilder("accessToken", newAccessToken), response);
-
+                    if(user != null) log.info("Refresh token verified for userID: {}", user.userId());
                     filterChain.doFilter(request, response);
                 } catch (ExpiredJwtException ex) {
                     log.error("Both tokens expired");

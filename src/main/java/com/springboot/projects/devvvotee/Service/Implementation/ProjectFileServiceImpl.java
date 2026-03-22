@@ -2,6 +2,7 @@ package com.springboot.projects.devvvotee.Service.Implementation;
 
 import com.springboot.projects.devvvotee.Dto.File.FileContentResponse;
 import com.springboot.projects.devvvotee.Dto.File.FileNode;
+import com.springboot.projects.devvvotee.Dto.File.FileTreeResponse;
 import com.springboot.projects.devvvotee.Entity.Project;
 import com.springboot.projects.devvvotee.Entity.ProjectFile;
 import com.springboot.projects.devvvotee.ExceptionHandling.Exception.BadRequestException;
@@ -44,12 +45,14 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     private String projectBucket;
 
     @Override
-    public List<FileNode> getFileTree(Long projectId) {
+    public FileTreeResponse getFileTree(Long projectId) {
 
         List<ProjectFile> projectFileList = projectFileRepository.findByProjectId(projectId);
-        return projectFileList.stream()
-                .map(projectFileMapper::toFileNode)
-                .toList();
+        return new FileTreeResponse(
+                projectFileList.stream()
+                        .map(projectFileMapper::toFileNode)
+                        .toList()
+        );
     }
 
     @Override

@@ -36,7 +36,7 @@ public class AuthUtil {
                 .claim("email", user.getEmail())
                 .claim("username", user.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000*60*2))
+                .expiration(new Date(System.currentTimeMillis() + 1000*60*15))
                 .signWith(getSecretKey())
                 .compact();
 
@@ -48,7 +48,7 @@ public class AuthUtil {
                 .claim("email", user.getEmail())
                 .claim("username", user.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000*60*10))
+                .expiration(new Date(System.currentTimeMillis() + 1000*60*60*24))
                 .signWith(getSecretKey())
                 .compact();
 
@@ -60,7 +60,7 @@ public class AuthUtil {
                 .claim("email", user.email())
                 .claim("username", user.username())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000*60*2))
+                .expiration(new Date(System.currentTimeMillis() + 1000*60*15))
                 .signWith(getSecretKey())
                 .compact();
     }

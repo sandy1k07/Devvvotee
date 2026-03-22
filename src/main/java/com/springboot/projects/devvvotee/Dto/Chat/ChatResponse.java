@@ -16,7 +16,6 @@ import java.util.List;
 
 public record ChatResponse(
         Long id,
-        ChatSession chatSession,
         List<ChatEventResponse> chatEvents,
         String content,
         MessageRole role,
