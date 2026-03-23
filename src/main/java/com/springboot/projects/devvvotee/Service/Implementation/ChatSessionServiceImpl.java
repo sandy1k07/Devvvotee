@@ -8,11 +8,14 @@ import com.springboot.projects.devvvotee.Repository.UserRepository;
 import com.springboot.projects.devvvotee.Service.ChatSessionService;
 import com.springboot.projects.devvvotee.Utils.HelperFunctions;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatSessionServiceImpl implements ChatSessionService {
@@ -21,18 +24,18 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     private final HelperFunctions helperFunctions;
 
     @Override
-    public ChatSession createChatSessionIfNotExists(Long projectId, Long userId) {
-        ChatSessionId chatSessionId = new ChatSessionId(projectId, userId);
-        Optional<ChatSession> optionalChatSession = chatSessionRepository.findById(chatSessionId);
-        if(optionalChatSession.isPresent()) return optionalChatSession.get();
-
+    public void createChatSessionIfNotExists(Long projectId, Long userId) {
         ChatSession chatSession = ChatSession.builder()
-                .chatSessionId(chatSessionId)
+                .chatSessionId(new ChatSessionId(userId, projectId))
                 .startedAt(Instant.now())
                 .user(helperFunctions.getUser(userId))
                 .project(helperFunctions.getProject(projectId))
                 .build();
-        chatSessionRepository.save(chatSession);
-        return chatSession;
+
+        try {
+            chatSessionRepository.save(chatSession);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error while saving chat session: {}", e.getLocalizedMessage());
+        }
     }
 }

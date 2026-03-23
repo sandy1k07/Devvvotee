@@ -3,6 +3,7 @@ package com.springboot.projects.devvvotee.Service.Implementation;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectRequest;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectResponse;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectSummaryResponse;
+import com.springboot.projects.devvvotee.Dto.Project.ProjectWithRole;
 import com.springboot.projects.devvvotee.Entity.Project;
 import com.springboot.projects.devvvotee.Entity.ProjectMember;
 import com.springboot.projects.devvvotee.Entity.ProjectMemberId;
@@ -23,6 +24,7 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @EnableMethodSecurity
@@ -70,20 +73,28 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
         projectMemberRepository.save(projectMember);
         projectStarterTemplateService.initializeProjectWithTemplate(project.getId());
-        return projectMapper.toProjectResponse(project);
+        return projectMapper.toProjectResponse(project, ProjectRole.OWNER);
     }
 
     @Override
-    public List<ProjectSummaryResponse> getProjects() {
+    public List<ProjectResponse> getProjects() {
         Long userId = functions.getCurrentUserId();
-        return projectMapper.toProjectSummaryResponseList(projectRepository.findProjectsAccessibleByUser(userId));
+        log.info("Requesting all projects for userId: {} from db", userId);
+        List<ProjectResponse> projectResponseList =  projectRepository.findProjectsAccessibleByUser(userId).stream()
+                    .map(projectWithRole -> projectMapper.toProjectResponse(
+                            projectWithRole.getProject(), projectWithRole.getProjectRole()
+                    )).toList();
+
+        log.info("Returning " + projectResponseList.size() + " projects corresponding to userId: {}", userId);
+        return projectResponseList;
     }
 
     @Override
     @PreAuthorize("@Security.canViewProject(#projectId)")
     public ProjectResponse getUserProjectById(Long projectId) {
         Long userId = functions.getCurrentUserId();
-        return projectMapper.toProjectResponse(functions.getAccessibleProjectById(projectId, userId));
+        ProjectWithRole projectWithRole = functions.getAccessibleProjectWithRoleById(projectId,  userId);
+        return projectMapper.toProjectResponse(projectWithRole.getProject(), projectWithRole.getProjectRole());
     }
 
     @Override
@@ -91,8 +102,9 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectResponse updateProject(Long projectId, ProjectRequest request) {
         Long userId = functions.getCurrentUserId();
         Project project = functions.getAccessibleProjectById(projectId, userId);
+        ProjectWithRole projectWithRole = functions.getAccessibleProjectWithRoleById(projectId,  userId);
         project.setName(request.name());
-        return projectMapper.toProjectResponse(projectRepository.save(project));
+        return projectMapper.toProjectResponse(projectRepository.save(project), null);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.springboot.projects.devvvotee.Utils;
 
+import com.springboot.projects.devvvotee.Dto.Project.ProjectWithRole;
 import com.springboot.projects.devvvotee.Entity.Project;
 import com.springboot.projects.devvvotee.Entity.ProjectMember;
 import com.springboot.projects.devvvotee.Entity.ProjectMemberId;
@@ -31,6 +32,12 @@ public class HelperFunctions {
 
     public Project getAccessibleProjectById(Long projectId, Long userId) {
         return projectRepository.findAccessibleProjectById(projectId, userId).orElseThrow(
+                () -> new ResourceNotFoundException("Project ", projectId.toString())
+        );
+    }
+
+    public ProjectWithRole getAccessibleProjectWithRoleById(Long projectId, Long userId) {
+        return projectRepository.findAccessibleProjectByIdWithRole(projectId, userId).orElseThrow(
                 () -> new ResourceNotFoundException("Project ", projectId.toString())
         );
     }

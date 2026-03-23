@@ -6,12 +6,14 @@ import com.springboot.projects.devvvotee.Dto.Project.ProjectSummaryResponse;
 import com.springboot.projects.devvvotee.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/projects")
@@ -20,7 +22,8 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @GetMapping
-    public ResponseEntity<List<ProjectSummaryResponse>> getMyProjects(){
+    public ResponseEntity<List<ProjectResponse>> getMyProjects(){
+        log.info("Request to get all projects received at controller");
         return ResponseEntity.ok(projectService.getProjects());
     }
 

@@ -1,6 +1,7 @@
 package com.springboot.projects.devvvotee.Dto.Project;
 
 import com.springboot.projects.devvvotee.Dto.Auth.UserProfileResponse;
+import com.springboot.projects.devvvotee.enums.ProjectRole;
 
 import java.time.Instant;
 
@@ -9,6 +10,6 @@ public record ProjectResponse(
         String name,
         Instant createdAt,
         Instant updatedAt,
-        UserProfileResponse owner
+        ProjectRole projectRole
 ) {
 }

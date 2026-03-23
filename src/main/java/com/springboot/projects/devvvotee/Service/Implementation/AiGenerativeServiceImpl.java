@@ -3,12 +3,14 @@ package com.springboot.projects.devvvotee.Service.Implementation;
 import com.springboot.projects.devvvotee.Entity.ChatEvent;
 import com.springboot.projects.devvvotee.Entity.ChatMessage;
 import com.springboot.projects.devvvotee.Entity.ChatSession;
+import com.springboot.projects.devvvotee.Entity.ChatSessionId;
 import com.springboot.projects.devvvotee.LLM.LlmResponseParser;
 import com.springboot.projects.devvvotee.LLM.Prompt;
 import com.springboot.projects.devvvotee.LLM.advisor.FileTreeContextAdvisor;
 import com.springboot.projects.devvvotee.LLM.tool.CodeGenerationTools;
 import com.springboot.projects.devvvotee.Repository.ChatEventRepository;
 import com.springboot.projects.devvvotee.Repository.ChatMessageRepository;
+import com.springboot.projects.devvvotee.Repository.ChatSessionRepository;
 import com.springboot.projects.devvvotee.Service.AiGenerativeService;
 import com.springboot.projects.devvvotee.Service.ChatService;
 import com.springboot.projects.devvvotee.Service.ChatSessionService;
@@ -42,6 +44,7 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
     private final ChatSessionService chatSessionService;
     private final ProjectFileService projectFileService;
     private final ChatEventRepository chatEventRepository;
+    private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final FileTreeContextAdvisor fileTreeContextAdvisor;
     private final ChatService chatService;
@@ -55,7 +58,7 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
         Long userId = helperFunctions.getCurrentUserId();
         StringBuilder fullResponse = new StringBuilder();
         CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectFileService, projectId);
-        ChatSession chatSession = chatSessionService.createChatSessionIfNotExists(projectId, userId);
+        chatSessionService.createChatSessionIfNotExists(projectId, userId);
 
 
         Map<String, Object> advisorParams = Map.of(
@@ -88,6 +91,9 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
                 .doOnComplete(() -> {
                     Schedulers.boundedElastic().schedule(  // as 3rd party api call involved, offloading to another thread
                             () -> {
+                                ChatSession chatSession = chatSessionRepository.getReferenceById(
+                                        new ChatSessionId(userId, projectId)
+                                );
                                 parseAndSaveFiles(fullResponse.toString(), projectId);
                                 Long thoughTime = (endTime.get() - startTime.get())/1000;
                                 parseLlmResponseAndSaveChats(fullResponse.toString(), chatSession, userMessage, thoughTime);
@@ -101,6 +107,12 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
 
 
     private void parseLlmResponseAndSaveChats(String llmResponse, ChatSession chatSession, String userMessage, Long thoughTime) {
+
+        if(chatSession == null) {
+            log.error("ChatSession object is null");
+            throw new RuntimeException("ChatSession is null");
+        }
+
         ChatMessage userChatMessage = chatService.createChatMessage(chatSession, null, userMessage,
                 MessageRole.USER, 0);
         chatMessageRepository.save(userChatMessage);
