@@ -1,5 +1,6 @@
 package com.springboot.projects.devvvotee.Controller;
 
+import com.springboot.projects.devvvotee.Dto.Chat.AiChatResponse;
 import com.springboot.projects.devvvotee.Dto.Chat.ChatRequest;
 import com.springboot.projects.devvvotee.Dto.Chat.ChatResponse;
 import com.springboot.projects.devvvotee.Security.SecurityExpression;
@@ -25,10 +26,10 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamChat(@RequestBody ChatRequest request) {  // server will send stream of data
+    public Flux<ServerSentEvent<AiChatResponse>> streamChat(@RequestBody ChatRequest request) {  // server will send stream of data
         log.info("Received request {}", request);
         return aiGenerativeService.streamResponse(request.message(), request.projectId())
-                .map(response -> ServerSentEvent.<String>builder()
+                .map(response -> ServerSentEvent.<AiChatResponse>builder()
                         .data(response)
                         .build());
     }

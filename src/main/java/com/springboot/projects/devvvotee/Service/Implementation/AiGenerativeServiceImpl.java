@@ -1,5 +1,6 @@
 package com.springboot.projects.devvvotee.Service.Implementation;
 
+import com.springboot.projects.devvvotee.Dto.Chat.AiChatResponse;
 import com.springboot.projects.devvvotee.Entity.ChatEvent;
 import com.springboot.projects.devvvotee.Entity.ChatMessage;
 import com.springboot.projects.devvvotee.Entity.ChatSession;
@@ -54,7 +55,7 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
 
     @Override
     @PreAuthorize("@Security.canEditProject(#projectId)")
-    public Flux<String> streamResponse(String userMessage, Long projectId) {
+    public Flux<AiChatResponse> streamResponse(String userMessage, Long projectId) {
         Long userId = helperFunctions.getCurrentUserId();
         StringBuilder fullResponse = new StringBuilder();
         CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectFileService, projectId);
@@ -101,7 +102,10 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
                 })
                 .retryWhen(Retry.max(0))
                 .map(chatClientResponse ->
-                        Objects.requireNonNull(chatClientResponse.getResult().getOutput().getText()));
+                {
+                    String response = chatClientResponse.getResult().getOutput().getText();
+                    return new AiChatResponse(response != null ? response : "");
+                });
 
     }
 

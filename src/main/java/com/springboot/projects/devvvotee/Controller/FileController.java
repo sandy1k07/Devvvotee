@@ -20,7 +20,6 @@ public class FileController {
 
     @GetMapping
     public ResponseEntity<FileTreeResponse> getFileTree(@PathVariable("projectId") Long projectId){
-        Long userId = 1L;
         return ResponseEntity.ok(projectFileService.getFileTree(projectId));
     }
 
@@ -30,7 +29,6 @@ public class FileController {
         @RequestParam String path
     ){
         log.info("File request received at FIleController for project {} path {}", projectId, path);
-        Long userId = 1L;
         return ResponseEntity.ok(projectFileService.getFileContent(projectId, path));
     }
 }

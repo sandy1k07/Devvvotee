@@ -21,7 +21,7 @@ public class UsageLog {
     Integer tokensUsed;
     Integer durationMs;
 
-    String metaDada; // json of {model_used, prompt used}
+    String metaData; // json of {model_used, prompt used}
 
     Instant createdAt;
 }
