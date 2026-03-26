@@ -12,16 +12,15 @@ import com.springboot.projects.devvvotee.LLM.tool.CodeGenerationTools;
 import com.springboot.projects.devvvotee.Repository.ChatEventRepository;
 import com.springboot.projects.devvvotee.Repository.ChatMessageRepository;
 import com.springboot.projects.devvvotee.Repository.ChatSessionRepository;
-import com.springboot.projects.devvvotee.Service.AiGenerativeService;
-import com.springboot.projects.devvvotee.Service.ChatService;
-import com.springboot.projects.devvvotee.Service.ChatSessionService;
-import com.springboot.projects.devvvotee.Service.ProjectFileService;
+import com.springboot.projects.devvvotee.Repository.UsageLogRepository;
+import com.springboot.projects.devvvotee.Service.*;
 import com.springboot.projects.devvvotee.Utils.HelperFunctions;
 import com.springboot.projects.devvvotee.enums.ChatEventType;
 import com.springboot.projects.devvvotee.enums.MessageRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -44,9 +43,9 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
     private final ChatClient chatClient;
     private final ChatSessionService chatSessionService;
     private final ProjectFileService projectFileService;
-    private final ChatEventRepository chatEventRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final UsageService usageService;
     private final FileTreeContextAdvisor fileTreeContextAdvisor;
     private final ChatService chatService;
     private final LlmResponseParser responseParser;
@@ -60,7 +59,7 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
         StringBuilder fullResponse = new StringBuilder();
         CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectFileService, projectId);
         chatSessionService.createChatSessionIfNotExists(projectId, userId);
-
+        usageService.checkDailyTokenUsage();
 
         Map<String, Object> advisorParams = Map.of(
                 "userId", userId,
@@ -70,6 +69,7 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
 
         AtomicReference<Long> startTime = new AtomicReference<>(System.currentTimeMillis());
         AtomicReference<Long> endTime = new AtomicReference<>(0L);
+        AtomicReference<Usage> usage  = new AtomicReference<>(null);
 
         return chatClient.prompt()
                 .system(Prompt.CODE_GENERATION_SYSTEM_PROMPT)
@@ -87,6 +87,11 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
                         endTime.set(System.currentTimeMillis());
                     }
                     fullResponse.append(response);
+
+                    // usage tokens
+                    if(chatResponse.getMetadata().getUsage() != null) {
+                        usage.set(chatResponse.getMetadata().getUsage());
+                    }
                 })
                 .doOnError(error -> log.error("Response streaming threw an error: "+error.getMessage()))
                 .doOnComplete(() -> {
@@ -96,8 +101,8 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
                                         new ChatSessionId(userId, projectId)
                                 );
                                 parseAndSaveFiles(fullResponse.toString(), projectId);
-                                Long thoughTime = (endTime.get() - startTime.get())/1000;
-                                parseLlmResponseAndSaveChats(fullResponse.toString(), chatSession, userMessage, thoughTime);
+                                Long thoughtTime = (endTime.get() - startTime.get())/1000;
+                                parseLlmResponseAndSaveChats(fullResponse.toString(), chatSession, userMessage, thoughtTime, usage.get());
                             });
                 })
                 .retryWhen(Retry.max(0))
@@ -110,7 +115,13 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
     }
 
 
-    private void parseLlmResponseAndSaveChats(String llmResponse, ChatSession chatSession, String userMessage, Long thoughTime) {
+    private void parseLlmResponseAndSaveChats(String llmResponse, ChatSession chatSession, String userMessage, Long thoughtTime
+    , Usage usage) {
+
+        if(usage != null){
+            Integer totalTokensUsed = usage.getTotalTokens();
+            usageService.recordTokenUsage(totalTokensUsed);
+        }
 
         if(chatSession == null) {
             log.error("ChatSession object is null");
@@ -118,17 +129,17 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
         }
 
         ChatMessage userChatMessage = chatService.createChatMessage(chatSession, null, userMessage,
-                MessageRole.USER, 0);
+                MessageRole.USER, usage.getPromptTokens());
         chatMessageRepository.save(userChatMessage);
 
         ChatMessage llmChatMessage = chatService.createChatMessage(chatSession, null, null,
-                MessageRole.ASSISTANT, 0);
+                MessageRole.ASSISTANT, usage.getCompletionTokens());
         List<ChatEvent> chatEvents = responseParser.parseChatEvents(llmResponse, llmChatMessage);
         chatEvents.addFirst(ChatEvent.builder()
                         .chatMessage(llmChatMessage)
                         .type(ChatEventType.THOUGHT_TIME)
                         .sequence(0)
-                        .content("Thought for " + thoughTime.toString()  + " s")
+                        .content("Thought for " + thoughtTime.toString()  + " s")
                 .build());
         llmChatMessage.setChatEvents(chatEvents);
         chatMessageRepository.save(llmChatMessage);

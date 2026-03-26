@@ -2,10 +2,13 @@ package com.springboot.projects.devvvotee.Service;
 
 import com.springboot.projects.devvvotee.Dto.Usage.PlanLimitsResponse;
 import com.springboot.projects.devvvotee.Dto.Usage.UsageTodayResponse;
+import com.springboot.projects.devvvotee.Entity.UsageLog;
 import org.jspecify.annotations.Nullable;
 
 public interface UsageService {
-    UsageTodayResponse getTodayUsageOfUser(Long userId);
+    void recordTokenUsage(Integer tokenUsage);
 
-    PlanLimitsResponse getCurrentSubscriptionLimitsOfUser(Long userId);
+    Boolean checkDailyTokenUsage();
+
+    UsageLog createNewUsageLog();
 }
