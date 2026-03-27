@@ -55,11 +55,12 @@ public class AiGenerativeServiceImpl implements AiGenerativeService {
     @Override
     @PreAuthorize("@Security.canEditProject(#projectId)")
     public Flux<AiChatResponse> streamResponse(String userMessage, Long projectId) {
+        log.info("Request in Ai chat service for projectId: {}", projectId);
         Long userId = helperFunctions.getCurrentUserId();
         StringBuilder fullResponse = new StringBuilder();
         CodeGenerationTools codeGenerationTools = new CodeGenerationTools(projectFileService, projectId);
         chatSessionService.createChatSessionIfNotExists(projectId, userId);
-        usageService.checkDailyTokenUsage();
+//        usageService.checkDailyTokenUsage();
 
         Map<String, Object> advisorParams = Map.of(
                 "userId", userId,

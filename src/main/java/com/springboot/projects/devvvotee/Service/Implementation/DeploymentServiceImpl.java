@@ -9,6 +9,7 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -22,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class DeploymentServiceImpl implements DeploymentService {
 
     private final KubernetesClient kubernetesClient;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private static final String NAMESPACE = "java-projects";
     private static final String POOL_LABEL = "status";
@@ -34,18 +36,19 @@ public class DeploymentServiceImpl implements DeploymentService {
 
     @Override
     public DeploymentResponse deploy(Long projectId) {
-        String domain = "project-" + projectId + ".app.domain.com";
+        String domain = "project-" + projectId + ".app.devvvotee.com";
         Pod existingPod = findActivePod(projectId);
 
         if(existingPod == null) {
-            startNewPod(projectId, domain);
+            existingPod = startNewPod(projectId, domain);
         }
+        registerRoute(domain, existingPod);
 
         //            return new DeploymentResponse("http://localhost:5840");
         return new DeploymentResponse("http://" + domain + ":" + REVERSE_PROXY_PORT);
     }
 
-    private void startNewPod(Long projectId, String domain) {
+    private Pod startNewPod(Long projectId, String domain) {
         Pod pod = kubernetesClient.pods().inNamespace(NAMESPACE)
                 .withLabel(POOL_LABEL, IDLE)
                 .list().getItems().stream()
@@ -87,6 +90,7 @@ public class DeploymentServiceImpl implements DeploymentService {
 
 
             log.info("Deployment successful: http://{}:{}", domain, REVERSE_PROXY_PORT);
+            return pod;
         } catch (Exception e) {
             log.info("Deployment failed: http://{}:{}", domain, REVERSE_PROXY_PORT);
             kubernetesClient.pods().inNamespace(NAMESPACE).withName(podName).delete();
@@ -131,5 +135,12 @@ public class DeploymentServiceImpl implements DeploymentService {
                 .filter(pod -> pod.getStatus().getPhase().equals("Running"))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private void registerRoute(String domainName, Pod pod) {
+        String podIp = pod.getStatus().getPodIP();
+        if(podIp == null) throw new RuntimeException("Pod is running but doesn't have an IP");
+
+        stringRedisTemplate.opsForValue().set("route:" + domainName, podIp + ":5173", 5, TimeUnit.HOURS);
     }
 }
