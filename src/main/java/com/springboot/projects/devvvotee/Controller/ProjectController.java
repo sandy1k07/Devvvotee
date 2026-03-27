@@ -3,6 +3,9 @@ package com.springboot.projects.devvvotee.Controller;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectRequest;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectResponse;
 import com.springboot.projects.devvvotee.Dto.Project.ProjectSummaryResponse;
+import com.springboot.projects.devvvotee.Dto.deploy.DeploymentResponse;
+import com.springboot.projects.devvvotee.Service.DeploymentService;
+import com.springboot.projects.devvvotee.Service.Implementation.DeploymentServiceImpl;
 import com.springboot.projects.devvvotee.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final DeploymentService deploymentService;
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getMyProjects(){
@@ -46,5 +50,10 @@ public class ProjectController {
     public ResponseEntity<Void> deleteProject(@PathVariable(name = "id") Long projectId){
         projectService.softDelete(projectId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/deploy")
+    public ResponseEntity<DeploymentResponse> deployProject(@PathVariable(name = "id") Long projectId){
+        return ResponseEntity.ok(deploymentService.deploy(projectId));
     }
 }

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devvvotee-proxy
+  namespace: java-projects
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devvvotee-proxy
+  template:
+    metadata:
+      labels:
+        app: devvvotee-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: proxy_node:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          env:
+            - name: REDIS_URL
+              value: "redis://redis-service:6379" #inside same cluster
+          ports:
+            - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-service
+  namespace: java-projects
+spec:
+  type: LoadBalancer
+  selector:
+    app: devvvotee-proxy
+  ports:
+    - port: 80
+      targetPort: 80
+
