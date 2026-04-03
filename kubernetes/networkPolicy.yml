@@ -14,7 +14,6 @@ spec:
   # INGRESS: Who can talk TO the Runner?
   ingress:
     - from:
-        # ALLOW: The Shuttle Proxy (in the same namespace)
         - podSelector:
             matchLabels:
               app: devvvotee-proxy
